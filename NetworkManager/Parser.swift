@@ -16,21 +16,26 @@ public protocol Parser {
 
 public extension Parser {
     func parse<T: Decodable>(response: DataResponse<Any>) -> Result<T> {
-        if let json = response.result.value, let result = JSON(json).arrayObject as? [[String: Any]] {
-            if JSONSerialization.isValidJSONObject(result) {
-                do {
-                    let data = try JSONSerialization.data(withJSONObject: result, options: [])
-                    let retrievingData = try JSONDecoder().decode(T.self, from: data)
-                    
-                    return Result.success(retrievingData)
-                } catch {
-                    return Result.failure(error.localizedDescription)
+        switch response.result {
+        case .failure(let error):
+            return Result.failure(error.localizedDescription)
+        case .success(_):
+            if let json = response.result.value, let result = JSON(json).arrayObject as? [[String: Any]] {
+                if JSONSerialization.isValidJSONObject(result) {
+                    do {
+                        let data = try JSONSerialization.data(withJSONObject: result, options: [])
+                        let retrievingData = try JSONDecoder().decode(T.self, from: data)
+                        
+                        return Result.success(retrievingData)
+                    } catch {
+                        return Result.failure(error.localizedDescription)
+                    }
+                } else {
+                    return Result.failure("Result is not a valid JSON object")
                 }
             } else {
-                return Result.failure("Result is not a valid JSON object")
+                return Result.failure("Ошибка при обработке данных!")
             }
-        } else {
-            return Result.failure("Ошибка при обработке данных!")
         }
     }
 }
